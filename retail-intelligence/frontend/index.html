@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retail Intelligence - Centralised Command (SIH26179)</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app">
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-icon">◈</div>
+            <div><h1>Retail Intelligence</h1><span class="brand-sub">Centralised Edge Analytics • SIH26179</span></div>
+        </div>
+        <div class="store-picker">
+            <label>STORE</label>
+            <select id="store-select"></select>
+        </div>
+        <div class="header-stats">
+            <div class="hstat"><span class="hstat-label">System</span><span id="system-status" class="hstat-value status-ok">Operational</span></div>
+            <div class="hstat"><span class="hstat-label">Cameras</span><span id="camera-count" class="hstat-value">8/8</span></div>
+            <div class="hstat"><span class="hstat-label">Live</span><span id="live-count" class="hstat-value">0</span></div>
+            <div class="hstat"><span class="hstat-label">Conversion</span><span id="head-conv" class="hstat-value">0%</span></div>
+            <div class="hstat"><span id="current-time" class="hstat-value time"></span></div>
+        </div>
+    </header>
+
+    <nav class="tabbar">
+        <button class="tab-btn active" data-tab="overview">Overview</button>
+        <button class="tab-btn" data-tab="cameras">Cameras</button>
+        <button class="tab-btn" data-tab="map">Store Map</button>
+        <button class="tab-btn" data-tab="promos">Promotions</button>
+        <button class="tab-btn" data-tab="inventory">Inventory</button>
+        <button class="tab-btn" data-tab="queues">Counters</button>
+        <button class="tab-btn" data-tab="reports">Reports</button>
+        <button class="tab-btn" data-tab="models">AI Models</button>
+        <button class="tab-btn" data-tab="alerts">Alerts <span id="alert-badge" class="badge">0</span></button>
+    </nav>
+
+    <main class="content">
+        <!-- OVERVIEW -->
+        <section id="tab-overview" class="tab-content active">
+            <div class="store-banner" id="store-banner"></div>
+            <div class="kpi-grid">
+                <div class="kpi-card"><div class="kpi-icon foot">👥</div><div class="kpi-info"><span class="kpi-value" id="ov-footfall">0</span><span class="kpi-label">Live In-Store</span></div></div>
+                <div class="kpi-card"><div class="kpi-icon cart">🛒</div><div class="kpi-info"><span class="kpi-value" id="ov-visitors">0</span><span class="kpi-label">Visitors Today</span></div></div>
+                <div class="kpi-card"><div class="kpi-icon conv">✅</div><div class="kpi-info"><span class="kpi-value" id="ov-buyers">0</span><span class="kpi-label">Buyers Today</span></div></div>
+                <div class="kpi-card"><div class="kpi-icon eval">📈</div><div class="kpi-info"><span class="kpi-value" id="ov-conversion">0%</span><span class="kpi-label">Conversion Rate</span></div></div>
+                <div class="kpi-card"><div class="kpi-icon wait">⏱</div><div class="kpi-info"><span class="kpi-value" id="ov-wait">0m</span><span class="kpi-label">Avg Wait</span></div></div>
+                <div class="kpi-card"><div class="kpi-icon wait">🧾</div><div class="kpi-info"><span class="kpi-value" id="ov-bill">0m</span><span class="kpi-label">Avg Billing</span></div></div>
+                <div class="kpi-card"><div class="kpi-icon stock">📦</div><div class="kpi-info"><span class="kpi-value" id="ov-oos">0</span><span class="kpi-label">Out of Stock</span></div></div>
+                <div class="kpi-card"><div class="kpi-icon conv">💰</div><div class="kpi-info"><span class="kpi-value" id="ov-sales">₹0</span><span class="kpi-label">Sales Today</span></div></div>
+            </div>
+
+            <div class="grid-row overview-row">
+                <div class="card span-2"><div class="card-header"><h3>Real-Time Footfall & Sales Load</h3></div><div class="chart-box"><canvas id="overview-chart"></canvas></div></div>
+                <div class="card"><div class="card-header"><h3>Zone Dwell Time</h3></div><div id="zone-dwell-list" class="list-container"></div></div>
+            </div>
+
+            <!-- SPLIT: camera rotates 2s, heatmap zone-wise 3s -->
+            <div class="split-view">
+                <div class="card split-panel">
+                    <div class="card-header"><h3>Live Camera <small id="ov-cam-name" style="color:#8a94a8"></small></h3><span class="live-indicator"><span class="dot"></span> LIVE • rotates 2s</span></div>
+                    <div class="camera-view" id="overview-camera-view"><div class="camera-loading">Initializing…</div></div>
+                    <div class="camera-info-bar"><span id="ov-cam-res">1080p</span><span id="ov-cam-zone">—</span><span id="ov-cam-people">0 detected</span><span id="ov-cam-live" style="color:#00ff88"></span></div>
+                </div>
+                <div class="card split-panel">
+                    <div class="card-header"><h3>Zone Thermal Map <small style="color:#8a94a8">refresh 3s</small></h3>
+                        <div class="thermal-legend"><span class="tl-item"><i style="background:#0044ff"></i>Empty</span><span class="tl-item"><i style="background:#00cc66"></i>Normal</span><span class="tl-item"><i style="background:#ffcc00"></i>Busy</span><span class="tl-item"><i style="background:#ff2200"></i>Crowded</span></div>
+                    </div>
+                    <div class="thermal-map-wrap"><canvas id="thermal-map"></canvas></div>
+                    <div class="zone-stats" id="thermal-zone-stats" style="margin-top:10px"></div>
+                </div>
+            </div>
+
+            <div class="grid-row" style="margin-top:16px">
+                <div class="card span-2">
+                    <div class="card-header"><h3>Footfall Log — Date • Time • Place</h3><button class="btn-secondary" onclick="downloadReport('footfall','csv')">Download CSV</button></div>
+                    <div class="table-wrap"><table class="data-table"><thead><tr><th>Date</th><th>Time</th><th>Place / Zone</th><th>Event</th><th>Count</th></tr></thead><tbody id="footfall-body"></tbody></table></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Promo Performance</h3></div>
+                    <div id="ov-promo-list" class="list-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CAMERAS -->
+        <section id="tab-cameras" class="tab-content">
+            <div class="camera-grid">
+                <div class="card camera-main">
+                    <div class="card-header"><h3 id="active-cam-title">Live Camera</h3><span class="live-indicator"><span class="dot"></span> LIVE</span></div>
+                    <div class="camera-view" id="camera-main-view"><div class="camera-loading">Loading…</div></div>
+                    <div class="camera-info-bar"><span id="cam-res"></span><span id="cam-zone"></span><span id="cam-people"></span></div>
+                </div>
+                <div class="card camera-selector"><div class="card-header"><h3>Cameras (click to pin)</h3></div><div id="camera-list" class="cam-list"></div></div>
+            </div>
+            <div class="card"><div class="card-header"><h3>YOLO Detector Link</h3><span class="badge-info">POST /api/detection/ingest</span></div>
+                <p style="color:#8a94a8;font-size:.85rem;line-height:1.6">Run <b>behavior_detector_v3.py</b> + <b>detection_bridge.py</b> on the store PC. Detections stream into this dashboard (green LIVE tag appears when real YOLO data is driving a camera). Without the bridge, simulated feeds are shown. See bridge script for setup.</p>
+                <div id="detection-stats" class="detections" style="margin-top:10px"></div>
+            </div>
+        </section>
+
+        <!-- MAP -->
+        <section id="tab-map" class="tab-content">
+            <div class="grid-row map-layout-row">
+                <div class="card span-2 map-main">
+                    <div class="card-header"><h3>Store Thermal Map + Promo Zones</h3>
+                        <div class="map-legend"><span class="legend"><i style="background:#0044ff"></i>Empty</span><span class="legend"><i style="background:#00cc66"></i>Normal</span><span class="legend"><i style="background:#ffcc00"></i>Busy</span><span class="legend"><i style="background:#ff2200"></i>Crowded</span><span class="legend"><i style="background:#ff88ff;border:1px dashed #c026d3"></i>Promo</span></div>
+                    </div>
+                    <div class="map-canvas-wrap"><canvas id="store-map"></canvas></div>
+                    <div class="zone-stats" id="map-zone-stats"></div>
+                </div>
+                <div class="card"><div class="card-header"><h3>Zone Analytics</h3></div><div id="map-zone-details" class="list-container"></div></div>
+            </div>
+        </section>
+
+        <!-- PROMOS -->
+        <section id="tab-promos" class="tab-content">
+            <div class="models-grid" id="promo-grid"></div>
+            <div class="card" style="margin-top:16px"><div class="card-header"><h3>Promo Dwell Comparison</h3></div><div class="chart-box"><canvas id="promo-chart"></canvas></div></div>
+        </section>
+
+        <!-- INVENTORY -->
+        <section id="tab-inventory" class="tab-content">
+            <div class="grid-row inv-header">
+                <div class="card inv-stats"><div class="stats-row">
+                    <div class="minicard"><span class="minicard-value" id="inv-total">0</span><span class="minicard-label">Products</span></div>
+                    <div class="minicard"><span class="minicard-value" id="inv-value">₹0</span><span class="minicard-label">Value</span></div>
+                    <div class="minicard crit"><span class="minicard-value" id="inv-oos">0</span><span class="minicard-label">Out of Stock</span></div>
+                    <div class="minicard warn"><span class="minicard-value" id="inv-low">0</span><span class="minicard-label">Low</span></div>
+                    <div class="minicard ok"><span class="minicard-value" id="inv-ok">0</span><span class="minicard-label">In Stock</span></div>
+                </div></div>
+                <div class="inv-actions"><button id="btn-add-product" class="btn-primary">+ Add Product</button><button id="btn-bulk-restock" class="btn-secondary">Restock All</button></div>
+            </div>
+            <div class="card inventory-card">
+                <div class="card-header"><h3>Products</h3><div class="search-bar"><input id="inventory-search" placeholder="Search…"><select id="inv-filter"><option value="all">All</option><option value="OUT_OF_STOCK">Out of Stock</option><option value="LOW">Low</option><option value="IN_STOCK">In Stock</option></select></div></div>
+                <div class="table-wrap"><table class="data-table" id="inventory-table"><thead><tr><th>Product</th><th>Category</th><th>Shelf</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inventory-body"></tbody></table></div>
+            </div>
+            <div id="product-modal" class="modal-overlay"><div class="modal"><div class="modal-header"><h3 id="modal-title">Add Product</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+                <form id="product-form"><input type="hidden" id="prod-id">
+                    <div class="form-row"><label>Name *</label><input id="prod-name" required></div>
+                    <div class="form-row"><label>Category</label><select id="prod-category"><option>Grocery</option><option>Dairy</option><option>Bakery</option><option>Electronics</option><option>Clothing</option><option>Footwear</option><option>Produce</option><option>General</option></select></div>
+                    <div class="form-row"><label>Shelf</label><input id="prod-shelf" placeholder="A1"></div>
+                    <div class="form-row"><label>Price ₹ *</label><input type="number" id="prod-price" required></div>
+                    <div class="form-row"><label>Max Stock</label><input type="number" id="prod-maxstock"></div>
+                    <div class="form-row"><label>Current Stock</label><input type="number" id="prod-stock"></div>
+                    <div class="form-actions"><button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button><button type="submit" class="btn-primary">Save</button></div>
+                </form></div></div>
+        </section>
+
+        <!-- COUNTERS -->
+        <section id="tab-queues" class="tab-content">
+            <div class="card"><div class="card-header"><h3>Smart Billing Counters</h3><span class="live-indicator"><span class="dot"></span> AUTO-SCALE</span></div>
+                <div class="queue-stats-row">
+                    <div class="qstat"><span class="qstat-value" id="q-total-waiting">0</span><span class="qstat-label">Waiting</span></div>
+                    <div class="qstat"><span class="qstat-value" id="q-open-counters">0/6</span><span class="qstat-label">Open</span></div>
+                    <div class="qstat"><span class="qstat-value" id="q-avg-wait">0m</span><span class="qstat-label">Avg Waiting</span></div>
+                    <div class="qstat"><span class="qstat-value" id="q-avg-bill">0m</span><span class="qstat-label">Avg Billing</span></div>
+                </div>
+                <div class="recommendation-box"><span class="rec-icon">🤖</span><span id="queue-recommendation-text">Monitoring…</span></div>
+            </div>
+            <div class="grid-row" style="margin-top:16px">
+                <div class="card span-2"><div class="card-header"><h3>Counter Load</h3></div><div class="queue-visual" id="queue-visual"></div></div>
+                <div class="card"><div class="card-header"><h3>Per-Counter (wait + billing)</h3></div><div id="counter-details" class="list-container"></div></div>
+            </div>
+        </section>
+
+        <!-- REPORTS -->
+        <section id="tab-reports" class="tab-content">
+            <div class="card"><div class="card-header"><h3>Analytic Reports — Timeline Downloads</h3></div>
+                <p style="color:#8a94a8;font-size:.85rem">Download per-store timeline data as CSV. Includes date + time columns for auditing.</p>
+                <div class="report-grid" id="report-grid">
+                    <div class="report-card"><h4>Footfall Timeline</h4><p>Date • Time • Place • Event • Count</p><button class="btn-primary" onclick="downloadReport('footfall','csv')">CSV</button> <button class="btn-secondary" onclick="previewReport('footfall')">Preview</button></div>
+                    <div class="report-card"><h4>Inventory Snapshot</h4><p>Stock • Status (incl. Out of Stock)</p><button class="btn-primary" onclick="downloadReport('inventory','csv')">CSV</button> <button class="btn-secondary" onclick="previewReport('inventory')">Preview</button></div>
+                    <div class="report-card"><h4>Counter Timeline</h4><p>Wait + Billing per counter</p><button class="btn-primary" onclick="downloadReport('queue','csv')">CSV</button> <button class="btn-secondary" onclick="previewReport('queue')">Preview</button></div>
+                    <div class="report-card"><h4>Promo Performance</h4><p>Footfall • Dwell • Conversion • Revenue</p><button class="btn-primary" onclick="downloadReport('promo','csv')">CSV</button> <button class="btn-secondary" onclick="previewReport('promo')">Preview</button></div>
+                    <div class="report-card"><h4>Sales Timeline</h4><p>Date • Time • Counter • Amount</p><button class="btn-primary" onclick="downloadReport('sales','csv')">CSV</button> <button class="btn-secondary" onclick="previewReport('sales')">Preview</button></div>
+                    <div class="report-card"><h4>Conversion Report</h4><p>Visitors • Buyers • Rate</p><button class="btn-primary" onclick="downloadReport('conversion','csv')">CSV</button> <button class="btn-secondary" onclick="previewReport('conversion')">Preview</button></div>
+                </div>
+            </div>
+            <div class="card" style="margin-top:16px"><div class="card-header"><h3 id="report-preview-title">Preview</h3></div><div class="table-wrap"><table class="data-table"><thead id="report-head"></thead><tbody id="report-body"></tbody></table></div></div>
+        </section>
+
+        <!-- MODELS -->
+        <section id="tab-models" class="tab-content">
+            <div class="card"><div class="card-header"><h3>Edge AI (linked detector: YOLOv8-pose + gesture)</h3></div>
+            <div class="model-metrics"><div class="mm"><span class="mm-value">6</span><span class="mm-label">Models</span></div><div class="mm"><span class="mm-value">35ms</span><span class="mm-label">Latency</span></div><div class="mm"><span class="mm-value">0.5W</span><span class="mm-label">Edge Power</span></div><div class="mm"><span class="mm-value">100% local</span><span class="mm-label">Privacy</span></div></div></div>
+            <div class="models-grid" id="models-grid" style="margin-top:16px"></div>
+        </section>
+
+        <!-- ALERTS -->
+        <section id="tab-alerts" class="tab-content">
+            <div class="card"><div class="card-header"><h3>Alerts (Out-of-Stock prioritised)</h3></div><div id="alerts-full-list" class="alerts-list"></div></div>
+        </section>
+    </main>
+</div>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
